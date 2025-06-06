@@ -151,16 +151,15 @@ header.scrolled .logo {
 
 /* Hero Section */
 #hero {
-    height: 100vh;
-    background-color: var(--primary-color);
-    background-image: url('https://images.pexels.com/photos/1554646/pexels-photo-1554646.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2');
+    background-image: url('./images/backshipatnight.png');
     background-size: cover;
     background-position: center;
-    background-blend-mode: overlay;
-    position: relative;
+    height: 100vh;
     display: flex;
     align-items: center;
-    color: var(--light-text);
+    justify-content: flex-start;
+    color: white;
+    padding-left: 50px;
 }
 
 #hero::before {
@@ -170,7 +169,7 @@ header.scrolled .logo {
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(to right, rgba(0, 29, 61, 0.9), rgba(0, 29, 61, 0.7));
+    background: linear-gradient(to right, rgba(0, 29, 61, 0.5), rgba(0, 29, 61, 0.3));
 }
 
 .hero-content {
@@ -180,35 +179,35 @@ header.scrolled .logo {
 }
 
 .tagline {
-    font-size: 72px;
-    font-weight: 800;
+    font-size: 4.5rem;
+    font-weight: bold;
     margin-bottom: 20px;
     line-height: 1;
+    margin-top: -20px; /* Move tagline higher */
 }
 
 .subtitle {
-    font-size: 24px;
-    margin-bottom: 40px;
-    max-width: 600px;
+    font-size: 1.1rem;
+    margin: 60px 0;
+    margin-top: -8px; /* Move subtitle higher */
 }
 
 .cta-button {
-    display: inline-block;
-    background-color: var(--secondary-color);
-    color: var(--primary-color);
-    padding: 15px 40px;
-    border-radius: 4px;
-    font-weight: 600;
-    font-size: 18px;
-    transition: all 0.3s ease;
+    background-color: transparent; /* Make the button background transparent */
+    border: 2px solid var(--secondary-color); /* Add a yellow outline */
+    color: var(--secondary-color); /* Change the text color to yellow */
+    padding: 10px 20px; /* Adjust padding for better appearance */
+    border-radius: 5px; /* Optional: Add rounded corners */
+    font-size: 16px; /* Adjust font size */
+    cursor: pointer; /* Add pointer cursor for hover effect */
+    transition: all 0.3s ease; /* Smooth transition for hover effects */
     text-transform: uppercase;
     letter-spacing: 1px;
 }
 
 .cta-button:hover {
-    background-color: #e6c000;
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    background-color: var(--secondary-color);
+    color: var(--light-text);
 }
 
 /* About Section */

@@ -1,10 +1,10 @@
-# SolutionCargo
+# Solution Cargo
 
-A modern, professional one-page website for SolutionCargo (solutioncargo.ht), a logistics and cargo services company focused on the Caribbean region.
+A modern, professional one-page website for Solution Cargo (Solution Cargo.ht), a logistics and cargo services company focused on the Caribbean region.
 
 ## Overview
 
-This project is a responsive, elegant website that showcases SolutionCargo's services and brand identity. The design emphasizes clean aesthetics, professional presentation, and seamless user experience across all device sizes.
+This project is a responsive, elegant website that showcases Solution Cargo's services and brand identity. The design emphasizes clean aesthetics, professional presentation, and seamless user experience across all device sizes.
 
 ## Technology Stack
 
@@ -26,7 +26,7 @@ This project is a responsive, elegant website that showcases SolutionCargo's ser
 
 ## Brand Elements
 
-The website adheres to SolutionCargo's brand identity:
+The website adheres to Solution Cargo's brand identity:
 - Color palette based on the company's official colors
 - Logo integration from provided brand assets
 - Consistent typography using the Inter font family
