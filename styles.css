@@ -75,7 +75,7 @@ header {
     width: 100%;
     z-index: 1000;
     background-color: transparent;
-    padding: 255px 0;
+    padding: 45px 0;
     transition: all 0.3s ease;
 }
 
@@ -100,7 +100,7 @@ nav {
 }
 
 .logo {
-    height: 150px;
+    height: 80px;
     transition: height 0.3s ease;
 }
 
@@ -180,14 +180,14 @@ header.scrolled .logo {
 }
 
 .tagline {
-    font-size: 52px;
+    font-size: 72px;
     font-weight: 800;
     margin-bottom: 20px;
     line-height: 1;
 }
 
 .subtitle {
-    font-size: 18px;
+    font-size: 24px;
     margin-bottom: 40px;
     max-width: 600px;
 }
