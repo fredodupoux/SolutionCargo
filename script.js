@@ -59,7 +59,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         // Toggle mobile nav
-        mobileNav.classList.add('active');
+            if (mobileNav.classList.contains('active')) {
+            mobileNav.classList.remove('active');
+        } else {
+            mobileNav.classList.add('active');
+        }
     });
     
     // Handle smooth scrolling for anchor links
