@@ -12,4 +12,18 @@ export default defineConfig({
     port: 5173, // Default port, change if needed
     allowedHosts: ['miamipi.ddns.net', 'dev.zaboka.net', 'miamipi.zaboka.net'] // Allow access from these domains
   },
+  build: {
+    rollupOptions: {
+      input: {
+        main: './index.html',
+        script: './script.js',
+      },
+      output: {
+        entryFileNames: 'assets/[name]-[hash].js',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash].[ext]',
+      },
+    },
+    outDir: 'dev',
+  },
 });
