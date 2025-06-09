@@ -107,6 +107,8 @@ nav {
 .logo img {
     height: 100%;
     width: auto;
+    transition: all 0.3s ease; /* Smooth transition for resizing */
+    opacity: 0.9; /* Add alpha transparency */
 }
 
 header.scrolled .logo {
@@ -159,7 +161,7 @@ header.scrolled .logo {
     align-items: center;
     justify-content: flex-start;
     color: white;
-    padding-left: 50px;
+    padding-left: 30px;
 }
 
 #hero::before {
@@ -178,6 +180,19 @@ header.scrolled .logo {
     max-width: 700px;
 }
 
+.logo {
+    height: 100px; /* Adjust logo size */
+    margin-right: 20px; /* Add spacing between logo and text */
+    margin-left: 20px; /* Add left margin for spacing */
+}
+
+.logo img {
+    height: 100%;
+    width: auto;
+    transition: all 0.3s ease; /* Smooth transition for resizing */
+    opacity: 0.85; /* Add alpha transparency */
+}
+
 .tagline {
     font-size: 4.5rem;
     font-weight: bold;
@@ -187,7 +202,7 @@ header.scrolled .logo {
 }
 
 .subtitle {
-    font-size: 1.1rem;
+    font-size: 1.12rem;
     margin: 60px 0;
     margin-top: -8px; /* Move subtitle higher */
 }
@@ -401,11 +416,11 @@ footer {
 /* Responsive Styles */
 @media (max-width: 992px) {
     .tagline {
-        font-size: 56px;
+        font-size: 68px;
     }
     
     .subtitle {
-        font-size: 20px;
+        font-size: 17px;
     }
 }
 
@@ -431,22 +446,22 @@ footer {
     }
     
     .subtitle {
-        font-size: 18px;
+        font-size: 12px;
     }
     
     .section-intro h2 {
-        font-size: 32px;
+        font-size: 28px;
     }
     
     .lead-text {
-        font-size: 20px;
+        font-size: 18px;
     }
     
     #about, 
     #services, 
     #cta, 
     #contact {
-        padding: 80px 0;
+        padding: 30px 0;
     }
     
     .services-grid {
