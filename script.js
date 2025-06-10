@@ -81,11 +81,4 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
-    
-    // Create folder for images if it doesn't exist
-    // Note: This cannot be done in browser environment, but would be part of setup
-    // For this example we're including it in the JavaScript for completeness
-    
-    // Logo processing would happen on the server
-    // We're assuming we've extracted and saved logo.png and logo-white.png from the PDF
 });
