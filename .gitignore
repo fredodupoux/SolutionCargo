@@ -8,6 +8,7 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+
 # Build output
 dist
 dist-ssr
@@ -15,6 +16,8 @@ dev
 build
 *.local
 build.
+email_log.txt
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

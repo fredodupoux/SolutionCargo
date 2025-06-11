@@ -16,6 +16,7 @@ echo "📂 Copying website files..."
 cp index.html $BUILD_DIR/
 cp process-form.php $BUILD_DIR/
 cp script.js $BUILD_DIR/
+cp contact-form.js $BUILD_DIR/
 cp styles.css $BUILD_DIR/
 cp favicon.ico $BUILD_DIR/ 2>/dev/null || echo "No favicon found, skipping..."
 cp images/*.{png,jpg,jpeg,svg,gif} $BUILD_DIR/images/ 2>/dev/null || echo "Warning: Could not copy one or more image files"

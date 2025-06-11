@@ -11,10 +11,10 @@ This project is a responsive, elegant website that showcases Solution Cargo's se
 ## 🛠️ Technology Stack
 
 - **Vanilla HTML/CSS/JS**: Fast, lightweight, and SEO-friendly implementation
-- **Build Tool**: Custom build script for production optimization
+- **Build Tool**: Custom bash script for production optimization
 - **Icons**: Feather Icons for modern, consistent iconography
 - **Fonts**: Inter font family for clean typography
-- **Animations**: AOS (Animate on Scroll) for smooth, subtle animations
+- **Animations**: CSS animations for smooth, subtle effects
 - **Form Handling**: PHP backend with security features (CSRF protection, reCAPTCHA)
 
 ## ✨ Features
@@ -41,6 +41,8 @@ The website adheres to Solution Cargo's brand identity:
 ```bash
 # Run local development server (using any simple server)
 python -m http.server 8080
+# or
+php -S localhost:8080
 
 # Build for production
 chmod +x build.sh
@@ -81,6 +83,7 @@ The build process includes:
 
 4. **Building for production**
    ```bash
+   chmod +x build.sh
    ./build.sh
    ```
 
