@@ -81,4 +81,135 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
+    
+    // Contact Form Popup Functionality
+    const openContactFormBtn = document.getElementById('openContactForm');
+    const closeContactFormBtn = document.getElementById('closeContactForm');
+    const contactFormPopup = document.getElementById('contactFormPopup');
+    
+    if (openContactFormBtn && contactFormPopup) {
+        openContactFormBtn.addEventListener('click', () => {
+            contactFormPopup.classList.add('active');
+            document.body.style.overflow = 'hidden'; // Prevent scrolling when popup is open
+        });
+    }
+    
+    if (closeContactFormBtn && contactFormPopup) {
+        closeContactFormBtn.addEventListener('click', () => {
+            contactFormPopup.classList.remove('active');
+            document.body.style.overflow = ''; // Restore scrolling
+        });
+        
+        // Close on click outside the form
+        contactFormPopup.addEventListener('click', (event) => {
+            if (event.target === contactFormPopup) {
+                contactFormPopup.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        });
+        
+        // Close on ESC key
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && contactFormPopup.classList.contains('active')) {
+                contactFormPopup.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        });
+    }
+    
+    // Contact Form Handling
+    const contactForm = document.getElementById('contactForm');
+    const formStatus = document.getElementById('form-status');
+    
+    if (contactForm) {
+        contactForm.addEventListener('submit', handleFormSubmit);
+    }
+    
+    function handleFormSubmit(event) {
+        event.preventDefault();
+        
+        // Check if all fields are filled out
+        const name = document.getElementById('name').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const message = document.getElementById('message').value.trim();
+        
+        if (!name || !email || !message) {
+            showFormMessage('Please fill in all required fields.', 'error');
+            return;
+        }
+        
+        // Verify reCAPTCHA
+        const recaptchaResponse = grecaptcha.getResponse();
+        if (!recaptchaResponse) {
+            showFormMessage('Please complete the reCAPTCHA verification.', 'error');
+            return;
+        }
+        
+        // Prepare form data
+        const formData = new FormData(contactForm);
+        
+        // Send form using fetch API
+        fetch('process-form.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                contactForm.reset();
+                grecaptcha.reset();
+                showFormMessage(data.message, 'success');
+                
+                // Close popup after successful submission (3 seconds delay)
+                setTimeout(() => {
+                    if (contactFormPopup.classList.contains('active')) {
+                        contactFormPopup.classList.remove('active');
+                        document.body.style.overflow = '';
+                    }
+                }, 3000);
+            } else {
+                showFormMessage(data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showFormMessage('An error occurred. Please try again later.', 'error');
+        });
+    }
+    
+    function showFormMessage(message, type) {
+        formStatus.textContent = message;
+        formStatus.className = 'form-status ' + type;
+        formStatus.style.display = 'block';
+        
+        // Auto-hide successful message after 5 seconds
+        if (type === 'success') {
+            setTimeout(() => {
+                formStatus.style.display = 'none';
+            }, 5000);
+        }
+    }
+    
+    // Check for URL parameters (used in non-AJAX fallback)
+    const urlParams = new URLSearchParams(window.location.search);
+    const status = urlParams.get('status');
+    const message = urlParams.get('message');
+    
+    if (status && message && formStatus) {
+        showFormMessage(message, status);
+        
+        // If there's a success status in the URL, open the popup to show the message
+        if (status === 'success' && contactFormPopup) {
+            contactFormPopup.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        // Remove the parameters from URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
 });
