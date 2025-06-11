@@ -19,7 +19,12 @@ cp script.js $BUILD_DIR/
 cp contact-form.js $BUILD_DIR/
 cp styles.css $BUILD_DIR/
 cp favicon.ico $BUILD_DIR/ 2>/dev/null || echo "No favicon found, skipping..."
+cp apple-touch-icon.png $BUILD_DIR/ 2>/dev/null || echo "No apple-touch-icon found, skipping..."
 cp images/*.{png,jpg,jpeg,svg,gif} $BUILD_DIR/images/ 2>/dev/null || echo "Warning: Could not copy one or more image files"
+
+# Copy icon directory
+echo "🎨 Copying icons..."
+cp -r images/icons.ico $BUILD_DIR/images/ 2>/dev/null || echo "Warning: Could not copy icon files"
 
 # IMPORTANT: Environment file should be placed OUTSIDE the web root directory
 # Create a config directory outside web root for environment files
