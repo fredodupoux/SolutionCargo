@@ -47,6 +47,3 @@ npm run build
 # Preview production build
 npm run preview
 ```
-<div class="contact-cta">
-                    <button id="openContactForm" class="cta-button">Send us a message</button>
-                </div>

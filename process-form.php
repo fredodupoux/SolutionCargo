@@ -1,0 +1,234 @@
+<?php
+/**
+ * Process Contact Form for Solution Cargo
+ * 
+ * This script processes the contact form submission, validates inputs,
+ * verifies the Google reCAPTCHA response and sends email notifications.
+ * Enhanced with additional security features and validation.
+ */
+
+// Start a session for CSRF protection if not already started
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Generate CSRF token if not already set
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+// Configuration
+$config = [
+    'admin_email' => 'info@solutioncargo.ht', // Change to your email
+    'cc_email' => '', // CC email if needed
+    'email_subject' => 'New Contact Form Submission - Solution Cargo',
+    'recaptcha_secret_key' => 'YOUR_RECAPTCHA_SECRET_KEY', // Replace with your secret key
+    'success_message' => 'Thank you! Your message has been sent successfully.',
+    'error_message' => 'Sorry, there was a problem sending your message.',
+    'recaptcha_error' => 'Security verification failed. Please try again.',
+    'fields_error' => 'Please fill in all required fields.',
+    'csrf_error' => 'Security validation failed. Please refresh and try again.',
+    'honeypot_error' => 'Form validation failed.',
+    'max_length' => [
+        'name' => 100,
+        'email' => 150,
+        'message' => 3000
+    ],
+    'rate_limit' => [
+        'enabled' => true,
+        'timeframe' => 300, // 5 minutes in seconds
+        'max_submissions' => 3 // maximum submissions within timeframe
+    ]
+];
+
+// Handle CSRF token request via GET
+if ($_SERVER["REQUEST_METHOD"] == "GET" && isset($_GET['get_token'])) {
+    header('Content-Type: application/json');
+    echo json_encode(['csrf_token' => $_SESSION['csrf_token']]);
+    exit;
+}
+
+// Only process POST requests
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    
+    // Function to sanitize form data
+    function sanitizeInput($data) {
+        $data = trim($data);
+        $data = stripslashes($data);
+        $data = htmlspecialchars($data, ENT_QUOTES, 'UTF-8');
+        return $data;
+    }
+    
+    // Initialize response array
+    $response = [
+        'success' => false,
+        'message' => '',
+        'errors' => []
+    ];
+    
+    // Check for rate limiting if enabled
+    if ($config['rate_limit']['enabled']) {
+        if (!isset($_SESSION['form_submissions'])) {
+            $_SESSION['form_submissions'] = [];
+        }
+        
+        // Remove entries older than the timeframe
+        $now = time();
+        $_SESSION['form_submissions'] = array_filter($_SESSION['form_submissions'], function($time) use ($now, $config) {
+            return ($now - $time) < $config['rate_limit']['timeframe'];
+        });
+        
+        // Check if max submissions reached
+        if (count($_SESSION['form_submissions']) >= $config['rate_limit']['max_submissions']) {
+            $response['message'] = 'Too many submissions. Please try again later.';
+            $response['errors']['rate_limit'] = true;
+            echo json_encode($response);
+            exit;
+        }
+    }
+    
+    // Check honeypot field (should be empty)
+    if (!empty($_POST['website'])) {
+        $response['message'] = $config['honeypot_error'];
+        echo json_encode($response);
+        exit;
+    }
+    
+    // Verify CSRF token
+    if (
+        !isset($_POST['csrf_token']) || 
+        !isset($_SESSION['csrf_token']) || 
+        $_POST['csrf_token'] !== $_SESSION['csrf_token']
+    ) {
+        $response['message'] = $config['csrf_error'];
+        $response['errors']['csrf'] = true;
+        echo json_encode($response);
+        exit;
+    }
+    
+    // Validate required fields
+    $errors = [];
+    
+    if (empty($_POST['name'])) {
+        $errors['name'] = 'Please enter your name';
+    } elseif (strlen($_POST['name']) > $config['max_length']['name']) {
+        $errors['name'] = 'Name is too long (maximum ' . $config['max_length']['name'] . ' characters)';
+    }
+    
+    if (empty($_POST['email'])) {
+        $errors['email'] = 'Please enter your email address';
+    } elseif (!filter_var($_POST['email'], FILTER_VALIDATE_EMAIL)) {
+        $errors['email'] = 'Please enter a valid email address';
+    } elseif (strlen($_POST['email']) > $config['max_length']['email']) {
+        $errors['email'] = 'Email is too long (maximum ' . $config['max_length']['email'] . ' characters)';
+    }
+    
+    if (empty($_POST['message'])) {
+        $errors['message'] = 'Please enter your message';
+    } elseif (strlen($_POST['message']) > $config['max_length']['message']) {
+        $errors['message'] = 'Message is too long (maximum ' . $config['max_length']['message'] . ' characters)';
+    }
+    
+    if (empty($_POST['g-recaptcha-response'])) {
+        $errors['recaptcha'] = 'Please complete the security verification';
+    }
+    
+    if (!empty($errors)) {
+        $response['message'] = $config['fields_error'];
+        $response['errors'] = $errors;
+        echo json_encode($response);
+        exit;
+    }
+    
+    // Sanitize form data
+    $name = sanitizeInput($_POST['name']);
+    $email = sanitizeInput($_POST['email']);
+    $message = sanitizeInput($_POST['message']);
+    $recaptcha = $_POST['g-recaptcha-response'];
+    
+    // Verify reCAPTCHA
+    $verify_url = 'https://www.google.com/recaptcha/api/siteverify';
+    $recaptcha_data = [
+        'secret' => $config['recaptcha_secret_key'],
+        'response' => $recaptcha,
+        'remoteip' => $_SERVER['REMOTE_ADDR']
+    ];
+    
+    $options = [
+        'http' => [
+            'header' => "Content-type: application/x-www-form-urlencoded\r\n",
+            'method' => 'POST',
+            'content' => http_build_query($recaptcha_data)
+        ]
+    ];
+    
+    $context = stream_context_create($options);
+    $verify_response = file_get_contents($verify_url, false, $context);
+    $response_data = json_decode($verify_response);
+    
+    if (!$response_data->success || $response_data->score < 0.5) {
+        $response['message'] = $config['recaptcha_error'];
+        $response['errors']['recaptcha'] = true;
+        echo json_encode($response);
+        exit;
+    }
+    
+    // Prepare email content
+    $email_content = "Name: $name\n";
+    $email_content .= "Email: $email\n\n";
+    $email_content .= "Message:\n$message\n";
+    
+    // Additional information for security
+    $email_content .= "\n\n---\n";
+    $email_content .= "Submitted from: " . $_SERVER['HTTP_REFERER'] . "\n";
+    $email_content .= "IP Address: " . $_SERVER['REMOTE_ADDR'] . "\n";
+    $email_content .= "Date: " . date('Y-m-d H:i:s') . "\n";
+    $email_content .= "Browser: " . $_SERVER['HTTP_USER_AGENT'] . "\n";
+    
+    // Set email headers
+    $headers = "From: Solution Cargo Website <no-reply@" . $_SERVER['HTTP_HOST'] . ">\r\n";
+    $headers .= "Reply-To: $name <$email>\r\n";
+    if (!empty($config['cc_email'])) {
+        $headers .= "Cc: " . $config['cc_email'] . "\r\n";
+    }
+    $headers .= "X-Mailer: PHP/" . phpversion() . "\r\n";
+    $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+    
+    // Attempt to send email
+    $mail_success = mail($config['admin_email'], $config['email_subject'], $email_content, $headers);
+    
+    if ($mail_success) {
+        // Record this submission for rate limiting
+        if ($config['rate_limit']['enabled']) {
+            $_SESSION['form_submissions'][] = time();
+        }
+        
+        // Generate new CSRF token for next submission
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        
+        $response['success'] = true;
+        $response['message'] = $config['success_message'];
+        $response['csrf_token'] = $_SESSION['csrf_token'];
+    } else {
+        $response['message'] = $config['error_message'];
+        $response['errors']['mail'] = true;
+    }
+    
+    // Return JSON response
+    header('Content-Type: application/json');
+    echo json_encode($response);
+    exit;
+    
+} else {
+    // For GET requests, return the CSRF token
+    if (isset($_GET['get_token'])) {
+        header('Content-Type: application/json');
+        echo json_encode(['csrf_token' => $_SESSION['csrf_token']]);
+        exit;
+    }
+    
+    // Not a POST or GET?token request, redirect to homepage
+    header("Location: index.html");
+    exit;
+}
+?>
