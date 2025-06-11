@@ -32,12 +32,18 @@ if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
+// Load environment variables from .env file
+$dotenv = [];
+if (file_exists(__DIR__ . '/.env')) {
+    $dotenv = parse_ini_file(__DIR__ . '/.env');
+}
+
 // Configuration
 $config = [
-    'admin_email' => 'info@solutioncargo.ht', // Change to your email
-    'cc_email' => '', // CC email if needed
-    'email_subject' => 'New Form Submission - Solution Cargo',
-    'recaptcha_secret_key' => '6LfI41srAAAAACcOqQqKoYAkVuXj4KWtylk1Tn6I', // Replace with your secret key
+    'admin_email' => isset($dotenv['ADMIN_EMAIL']) ? $dotenv['ADMIN_EMAIL'] : 'info@solutioncargo.ht',
+    'cc_email' => isset($dotenv['CC_EMAIL']) ? $dotenv['CC_EMAIL'] : '',
+    'email_subject' => isset($dotenv['EMAIL_SUBJECT']) ? $dotenv['EMAIL_SUBJECT'] : 'New Form Submission - Solution Cargo',
+    'recaptcha_secret_key' => isset($dotenv['RECAPTCHA_SECRET_KEY']) ? $dotenv['RECAPTCHA_SECRET_KEY'] : '',
     'success_message' => 'Thank you! Your message has been sent successfully.',
     'error_message' => 'Sorry, there was a problem sending your message.',
     'recaptcha_error' => 'Security verification failed. Please try again.',
@@ -291,6 +297,12 @@ if ($_SERVER["REQUEST_METHOD"] == "GET" && isset($_GET['get_token'])) {
     // Return JSON response
     header('Content-Type: application/json');
     echo json_encode($response);
+    exit;
+    
+} elseif ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['get_recaptcha_site_key'])) {
+    // Serve the reCAPTCHA site key dynamically
+    header('Content-Type: application/json');
+    echo json_encode(['siteKey' => isset($dotenv['RECAPTCHA_SITE_KEY']) ? $dotenv['RECAPTCHA_SITE_KEY'] : '']);
     exit;
     
 } else {

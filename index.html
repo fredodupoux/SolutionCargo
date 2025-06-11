@@ -9,7 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <script src="https://unpkg.com/feather-icons"></script>
-    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    <!-- reCAPTCHA will be loaded dynamically with the site key from the server -->
 </head>
 <body id="top">
     <header>
@@ -206,7 +206,7 @@
                     <div class="error-message" id="message-error"></div>
                 </div>
                 
-                <div class="g-recaptcha" data-sitekey="6LfI41srAAAAAO0871sg_jXJFEj50Uwt_LSK-Dca"></div>
+                <div id="recaptcha-container" class="g-recaptcha"></div>
                 <div class="error-message" id="recaptcha-error"></div>
                 
                 <div class="form-submit">
@@ -224,5 +224,31 @@
     <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
     <script src="script.js"></script>
     <script src="contact-form.js"></script>
+    
+    <!-- Load reCAPTCHA dynamically with site key from server -->
+    <script>
+        // Fetch the reCAPTCHA site key from the server
+        fetch('process-form.php?get_recaptcha_site_key=1')
+            .then(response => response.json())
+            .then(data => {
+                if (data.siteKey) {
+                    // Add the reCAPTCHA script with the site key
+                    const recaptchaContainer = document.getElementById('recaptcha-container');
+                    recaptchaContainer.setAttribute('data-sitekey', data.siteKey);
+                    
+                    // Load the reCAPTCHA script
+                    const script = document.createElement('script');
+                    script.src = 'https://www.google.com/recaptcha/api.js';
+                    script.async = true;
+                    script.defer = true;
+                    document.head.appendChild(script);
+                } else {
+                    console.error('Failed to load reCAPTCHA site key');
+                }
+            })
+            .catch(error => {
+                console.error('Error loading reCAPTCHA site key:', error);
+            });
+    </script>
 </body>
 </html>
