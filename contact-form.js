@@ -71,10 +71,20 @@ function initContactForm() {
     
     // Open popup function
     function openContactPopup() {
-        // Fetch new token when opening the form
+        // Always fetch a fresh token when opening the form
         fetchCsrfToken();
         contactFormPopup.classList.add('active');
         document.body.style.overflow = 'hidden'; // Prevent scrolling
+        
+        // Reset any previous error states
+        formStatus.style.display = 'none';
+        formStatus.className = 'form-status';
+        
+        // Clear any previous validation errors
+        if (nameError) nameError.classList.remove('visible');
+        if (emailError) emailError.classList.remove('visible');
+        if (messageError) messageError.classList.remove('visible');
+        if (recaptchaError) recaptchaError.classList.remove('visible');
     }
     
     // Close popup function
@@ -85,6 +95,7 @@ function initContactForm() {
     
     // Fetch CSRF token
     function fetchCsrfToken() {
+        console.log('Fetching new CSRF token...');
         fetch('process-form.php?get_token=1')
             .then(response => {
                 if (!response.ok) {
@@ -101,6 +112,7 @@ function initContactForm() {
             })
             .then(data => {
                 if (csrfTokenInput && data.csrf_token) {
+                    console.log('CSRF token updated:', data.csrf_token.substring(0, 8) + '...');
                     csrfTokenInput.value = data.csrf_token;
                 }
             })
@@ -167,6 +179,16 @@ function initContactForm() {
     function validateForm() {
         let isValid = true;
         
+        // Check if CSRF token is available
+        if (!csrfTokenInput || !csrfTokenInput.value) {
+            console.error('CSRF token not available');
+            formStatus.textContent = 'Security token not ready. Please wait a moment and try again.';
+            formStatus.className = 'form-status error';
+            formStatus.style.display = 'block';
+            fetchCsrfToken(); // Try to fetch token
+            return false;
+        }
+        
         isValid = validateField(nameInput, nameError, validateName) && isValid;
         isValid = validateField(emailInput, emailError, validateEmail) && isValid;
         isValid = validateField(messageInput, messageError, validateMessage) && isValid;
@@ -189,6 +211,11 @@ function initContactForm() {
     function handleFormSubmit(event) {
         event.preventDefault();
         
+        // Prevent multiple submissions
+        if (submitButton.disabled || submitButton.classList.contains('loading')) {
+            return;
+        }
+        
         // Hide any previous status messages
         formStatus.style.display = 'none';
         formStatus.className = 'form-status';
@@ -204,6 +231,9 @@ function initContactForm() {
         
         // Prepare form data
         const formData = new FormData(contactForm);
+        
+        // Debug: Log the CSRF token being sent
+        console.log('Submitting form with CSRF token:', csrfTokenInput.value.substring(0, 8) + '...');
         
         // Send form using fetch API
         fetch('process-form.php', {
@@ -275,15 +305,21 @@ function initContactForm() {
                     }
                     
                     if (data.errors.csrf) {
-                        // Fetch a new token
+                        // Fetch a new token and retry once
                         fetchCsrfToken();
+                        formStatus.textContent = 'Security token refreshed. Please try again.';
+                        formStatus.className = 'form-status warning';
+                        formStatus.style.display = 'block';
+                        return; // Don't show the general error message for CSRF errors
                     }
                 }
                 
-                // Show general error message
-                formStatus.textContent = data.message || 'An error occurred. Please try again.';
-                formStatus.className = 'form-status error';
-                formStatus.style.display = 'block';
+                // Show general error message (only if not a CSRF error)
+                if (!data.errors || !data.errors.csrf) {
+                    formStatus.textContent = data.message || 'An error occurred. Please try again.';
+                    formStatus.className = 'form-status error';
+                    formStatus.style.display = 'block';
+                }
             }
         })
         .catch(error => {

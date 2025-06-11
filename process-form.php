@@ -24,6 +24,15 @@ set_error_handler(function($errno, $errstr, $errfile, $errline) {
 
 // Start a session for CSRF protection if not already started
 if (session_status() === PHP_SESSION_NONE) {
+    // Configure session settings for security
+    ini_set('session.cookie_httponly', 1);
+    ini_set('session.use_only_cookies', 1);
+    ini_set('session.cookie_secure', isset($_SERVER['HTTPS']));
+    ini_set('session.cookie_samesite', 'Lax');
+    
+    // Set session name to avoid conflicts
+    session_name('solutioncargo_session');
+    
     session_start();
 }
 
@@ -32,10 +41,29 @@ if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
+// Also store the token creation time to help with debugging
+if (empty($_SESSION['csrf_token_time'])) {
+    $_SESSION['csrf_token_time'] = time();
+}
+
 // Load environment variables from .env file
 $dotenv = [];
-if (file_exists(__DIR__ . '/.solutionCargo.env')) {
-    $dotenv = parse_ini_file(__DIR__ . '/.solutionCargo.env');
+
+// Try multiple secure locations for the environment file
+$env_paths = [
+    // Production: Outside web root (most secure)
+    dirname($_SERVER['DOCUMENT_ROOT']) . '/config/.solutionCargo.env',
+    // Alternative: Parent directory of web root
+    dirname(__DIR__) . '/.solutionCargo.env',
+    // Fallback: Same directory (development only - less secure)
+    __DIR__ . '/.solutionCargo.env'
+];
+
+foreach ($env_paths as $env_path) {
+    if (file_exists($env_path)) {
+        $dotenv = parse_ini_file($env_path);
+        break;
+    }
 }
 
 // Configuration
@@ -66,7 +94,14 @@ $config = [
 if ($_SERVER["REQUEST_METHOD"] == "GET" && isset($_GET['get_token'])) {
     // Handle CSRF token request via GET
     header('Content-Type: application/json');
-    echo json_encode(['csrf_token' => $_SESSION['csrf_token']]);
+    
+    // Log token request for debugging
+    error_log("CSRF Token Requested - Session ID: " . session_id() . " | Token: " . substr($_SESSION['csrf_token'], 0, 8) . '...');
+    
+    echo json_encode([
+        'csrf_token' => $_SESSION['csrf_token'],
+        'session_id' => session_id() // For debugging
+    ]);
     exit;
 } elseif ($_SERVER["REQUEST_METHOD"] == "POST") {
     
@@ -114,16 +149,32 @@ if ($_SERVER["REQUEST_METHOD"] == "GET" && isset($_GET['get_token'])) {
     }
     
     // Verify CSRF token
-    if (
-        !isset($_POST['csrf_token']) || 
-        !isset($_SESSION['csrf_token']) || 
-        $_POST['csrf_token'] !== $_SESSION['csrf_token']
-    ) {
+    $csrf_posted = isset($_POST['csrf_token']) ? $_POST['csrf_token'] : null;
+    $csrf_session = isset($_SESSION['csrf_token']) ? $_SESSION['csrf_token'] : null;
+    $token_age = isset($_SESSION['csrf_token_time']) ? (time() - $_SESSION['csrf_token_time']) : 'unknown';
+    
+    if (!$csrf_posted || !$csrf_session || $csrf_posted !== $csrf_session) {
+        // Log CSRF failure for debugging
+        error_log("CSRF Token Mismatch - Session: " . ($csrf_session ? substr($csrf_session, 0, 8) . '...' : 'NONE') . 
+                  " | Posted: " . ($csrf_posted ? substr($csrf_posted, 0, 8) . '...' : 'NONE') . 
+                  " | Session ID: " . session_id() . 
+                  " | Token Age: " . $token_age . "s" .
+                  " | User Agent: " . $_SERVER['HTTP_USER_AGENT']);
+        
+        // Generate new token for the response
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        $_SESSION['csrf_token_time'] = time();
+        
         $response['message'] = $config['csrf_error'];
         $response['errors']['csrf'] = true;
+        $response['csrf_token'] = $_SESSION['csrf_token']; // Send new token
+        header('Content-Type: application/json');
         echo json_encode($response);
         exit;
     }
+    
+    // Log successful CSRF validation for debugging
+    error_log("CSRF Token Valid - Session: " . substr($csrf_session, 0, 8) . '...' . " | Session ID: " . session_id() . " | Token Age: " . $token_age . "s");
     
     // Validate required fields
     $errors = [];
@@ -280,6 +331,7 @@ if ($_SERVER["REQUEST_METHOD"] == "GET" && isset($_GET['get_token'])) {
             
             // Generate new CSRF token for next submission
             $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+            $_SESSION['csrf_token_time'] = time();
             
             $response['success'] = true;
             $response['message'] = $config['success_message'];

@@ -21,9 +21,36 @@ cp styles.css $BUILD_DIR/
 cp favicon.ico $BUILD_DIR/ 2>/dev/null || echo "No favicon found, skipping..."
 cp images/*.{png,jpg,jpeg,svg,gif} $BUILD_DIR/images/ 2>/dev/null || echo "Warning: Could not copy one or more image files"
 
+# IMPORTANT: Environment file should be placed OUTSIDE the web root directory
+# Create a config directory outside web root for environment files
+mkdir -p $BUILD_DIR/../config
+cp .solutionCargo.env $BUILD_DIR/../config/ 2>/dev/null || echo "Environment file not found - you'll need to create it on the server"
+
+echo "🔒 Security Notice: Place .solutionCargo.env OUTSIDE your web root directory!"
+echo "   Recommended path: /home/[username]/config/.solutionCargo.env"
+
 # Add an .htaccess file for Apache servers (common for PHP hosting)
 echo "📄 Creating .htaccess file..."
 cat > $BUILD_DIR/.htaccess << EOL
+# Security: Deny access to sensitive files
+<FilesMatch "\.(env|ini|config|log|bak|backup|txt)$">
+    Require all denied
+</FilesMatch>
+
+# Specifically deny access to environment files
+<Files ".solutionCargo.env">
+    Require all denied
+</Files>
+
+<Files ".env">
+    Require all denied
+</Files>
+
+# Deny access to log files
+<Files "email_log.txt">
+    Require all denied
+</Files>
+
 # Enable PHP processing
 <IfModule mod_php.c>
     php_flag display_errors off
@@ -62,7 +89,13 @@ echo "✅ Build complete! Your website is ready in the '$BUILD_DIR' folder."
 echo "🚀 You can now upload the contents of this folder to your web server."
 echo ""
 echo "📋 Deployment checklist:"
-echo "  1. Make sure your server has PHP installed and configured"
-echo "  2. Configure your email settings on the server"
-echo "  3. Test the contact form after deployment"
-echo "  4. Check that CSRF tokens and reCAPTCHA are working"
+echo "  1. Upload the contents of the 'build' folder to your web root (public_html)"
+echo "  2. 🔒 CRITICAL: Place .solutionCargo.env OUTSIDE your web root directory"
+echo "     - Recommended: /home/[username]/config/.solutionCargo.env"
+echo "     - NEVER place it in public_html or any web-accessible directory"
+echo "  3. Make sure your server has PHP installed and configured"
+echo "  4. Test the contact form after deployment"
+echo "  5. Check that CSRF tokens and reCAPTCHA are working"
+echo "  6. Verify that .solutionCargo.env is NOT accessible via web browser"
+echo "     - Try accessing: https://yourdomain.com/.solutionCargo.env"
+echo "     - Should return 403 Forbidden or 404 Not Found"

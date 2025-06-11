@@ -21,4 +21,5 @@ email_log.txt
 # environment files
 .gitignore
 .solutionCargo.env
-env-test.php
+SECURITY_DEPLOYMENT.md
+build.sh
