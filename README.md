@@ -2,7 +2,7 @@
 
 A modern, professional one-page website for Solution Cargo (Solution Cargo.ht), a logistics and cargo services company focused on the Caribbean region.
 
-![Ship Better](./build/images/backshipatnight-CTLCk2kK.jpeg)
+![Ship Better](https://solutioncargo.ht/images/backshipatnight-CTLCk2kK.jpeg)
 
 ## 📋 Overview
 
