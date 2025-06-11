@@ -174,7 +174,19 @@ function initContactForm() {
     // Fetch CSRF token
     function fetchCsrfToken() {
         fetch('process-form.php?get_token=1')
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.text().then(text => {
+                    try {
+                        return JSON.parse(text);
+                    } catch (e) {
+                        console.error('Invalid JSON response:', text);
+                        throw new Error('Server returned an invalid response');
+                    }
+                });
+            })
             .then(data => {
                 if (csrfTokenInput && data.csrf_token) {
                     csrfTokenInput.value = data.csrf_token;
@@ -290,7 +302,14 @@ function initContactForm() {
             if (!response.ok) {
                 throw new Error('Network response was not ok');
             }
-            return response.json();
+            return response.text().then(text => {
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    console.error('Invalid JSON response:', text);
+                    throw new Error('Server returned an invalid response');
+                }
+            });
         })
         .then(data => {
             // Update CSRF token

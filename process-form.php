@@ -7,6 +7,21 @@
  * Enhanced with additional security features and validation.
  */
 
+// Prevent PHP errors from breaking JSON output
+ini_set('display_errors', 0);
+error_reporting(E_ALL);
+
+// Register custom error handler to convert errors to JSON responses
+set_error_handler(function($errno, $errstr, $errfile, $errline) {
+    header('Content-Type: application/json');
+    echo json_encode([
+        'success' => false,
+        'message' => 'Server error occurred.',
+        'errors' => ['server' => $errstr]
+    ]);
+    exit;
+});
+
 // Start a session for CSRF protection if not already started
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -22,7 +37,7 @@ $config = [
     'admin_email' => 'info@solutioncargo.ht', // Change to your email
     'cc_email' => '', // CC email if needed
     'email_subject' => 'New Contact Form Submission - Solution Cargo',
-    'recaptcha_secret_key' => 'YOUR_RECAPTCHA_SECRET_KEY', // Replace with your secret key
+    'recaptcha_secret_key' => '6LfI41srAAAAACcOqQqKoYAkVuXj4KWtylk1Tn6I', // Replace with your secret key
     'success_message' => 'Thank you! Your message has been sent successfully.',
     'error_message' => 'Sorry, there was a problem sending your message.',
     'recaptcha_error' => 'Security verification failed. Please try again.',
@@ -41,15 +56,13 @@ $config = [
     ]
 ];
 
-// Handle CSRF token request via GET
+// Only process POST requests or token requests
 if ($_SERVER["REQUEST_METHOD"] == "GET" && isset($_GET['get_token'])) {
+    // Handle CSRF token request via GET
     header('Content-Type: application/json');
     echo json_encode(['csrf_token' => $_SESSION['csrf_token']]);
     exit;
-}
-
-// Only process POST requests
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
+} elseif ($_SERVER["REQUEST_METHOD"] == "POST") {
     
     // Function to sanitize form data
     function sanitizeInput($data) {
@@ -162,12 +175,36 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         ]
     ];
     
-    $context = stream_context_create($options);
-    $verify_response = file_get_contents($verify_url, false, $context);
-    $response_data = json_decode($verify_response);
-    
-    if (!$response_data->success || $response_data->score < 0.5) {
-        $response['message'] = $config['recaptcha_error'];
+    try {
+        $context = stream_context_create($options);
+        $verify_response = file_get_contents($verify_url, false, $context);
+        
+        if ($verify_response === false) {
+            throw new Exception('Failed to contact reCAPTCHA verification service');
+        }
+        
+        $response_data = json_decode($verify_response);
+        
+        if (!$response_data) {
+            throw new Exception('Invalid response from reCAPTCHA verification service');
+        }
+        
+        if (!$response_data->success) {
+            $response['message'] = $config['recaptcha_error'];
+            $response['errors']['recaptcha'] = true;
+            echo json_encode($response);
+            exit;
+        }
+        
+        // Check score for v3 reCAPTCHA if applicable
+        if (property_exists($response_data, 'score') && $response_data->score < 0.5) {
+            $response['message'] = $config['recaptcha_error'];
+            $response['errors']['recaptcha'] = true;
+            echo json_encode($response);
+            exit;
+        }
+    } catch (Exception $e) {
+        $response['message'] = 'Error verifying security token: ' . $e->getMessage();
         $response['errors']['recaptcha'] = true;
         echo json_encode($response);
         exit;
@@ -195,23 +232,29 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
     
     // Attempt to send email
-    $mail_success = mail($config['admin_email'], $config['email_subject'], $email_content, $headers);
-    
-    if ($mail_success) {
-        // Record this submission for rate limiting
-        if ($config['rate_limit']['enabled']) {
-            $_SESSION['form_submissions'][] = time();
+    try {
+        $mail_success = mail($config['admin_email'], $config['email_subject'], $email_content, $headers);
+        
+        if ($mail_success) {
+            // Record this submission for rate limiting
+            if ($config['rate_limit']['enabled']) {
+                $_SESSION['form_submissions'][] = time();
+            }
+            
+            // Generate new CSRF token for next submission
+            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+            
+            $response['success'] = true;
+            $response['message'] = $config['success_message'];
+            $response['csrf_token'] = $_SESSION['csrf_token'];
+        } else {
+            $response['message'] = $config['error_message'];
+            $response['errors']['mail'] = true;
         }
-        
-        // Generate new CSRF token for next submission
-        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-        
-        $response['success'] = true;
-        $response['message'] = $config['success_message'];
-        $response['csrf_token'] = $_SESSION['csrf_token'];
-    } else {
+    } catch (Exception $e) {
         $response['message'] = $config['error_message'];
         $response['errors']['mail'] = true;
+        $response['errors']['details'] = $e->getMessage();
     }
     
     // Return JSON response
@@ -220,13 +263,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     exit;
     
 } else {
-    // For GET requests, return the CSRF token
-    if (isset($_GET['get_token'])) {
-        header('Content-Type: application/json');
-        echo json_encode(['csrf_token' => $_SESSION['csrf_token']]);
-        exit;
-    }
-    
     // Not a POST or GET?token request, redirect to homepage
     header("Location: index.html");
     exit;
