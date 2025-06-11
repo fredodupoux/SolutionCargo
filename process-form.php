@@ -34,8 +34,8 @@ if (empty($_SESSION['csrf_token'])) {
 
 // Load environment variables from .env file
 $dotenv = [];
-if (file_exists(__DIR__ . '/.env')) {
-    $dotenv = parse_ini_file(__DIR__ . '/.env');
+if (file_exists(__DIR__ . '/.solutionCargo.env')) {
+    $dotenv = parse_ini_file(__DIR__ . '/.solutionCargo.env');
 }
 
 // Configuration
