@@ -36,7 +36,7 @@ if (empty($_SESSION['csrf_token'])) {
 $config = [
     'admin_email' => 'info@solutioncargo.ht', // Change to your email
     'cc_email' => '', // CC email if needed
-    'email_subject' => 'New Contact Form Submission - Solution Cargo',
+    'email_subject' => 'New Form Submission - Solution Cargo',
     'recaptcha_secret_key' => '6LfI41srAAAAACcOqQqKoYAkVuXj4KWtylk1Tn6I', // Replace with your secret key
     'success_message' => 'Thank you! Your message has been sent successfully.',
     'error_message' => 'Sorry, there was a problem sending your message.',
@@ -223,17 +223,48 @@ if ($_SERVER["REQUEST_METHOD"] == "GET" && isset($_GET['get_token'])) {
     $email_content .= "Browser: " . $_SERVER['HTTP_USER_AGENT'] . "\n";
     
     // Set email headers
-    $headers = "From: Solution Cargo Website <no-reply@" . $_SERVER['HTTP_HOST'] . ">\r\n";
+    $domain = (isset($_SERVER['HTTP_HOST']) && strpos($_SERVER['HTTP_HOST'], 'localhost') === false) 
+              ? $_SERVER['HTTP_HOST'] 
+              : 'solutioncargo.ht';
+              
+    $headers = "From: Solution Cargo Website <no-reply@{$domain}>\r\n";
     $headers .= "Reply-To: $name <$email>\r\n";
     if (!empty($config['cc_email'])) {
         $headers .= "Cc: " . $config['cc_email'] . "\r\n";
     }
     $headers .= "X-Mailer: PHP/" . phpversion() . "\r\n";
+    $headers .= "MIME-Version: 1.0\r\n";
     $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
     
     // Attempt to send email
     try {
-        $mail_success = mail($config['admin_email'], $config['email_subject'], $email_content, $headers);
+        // Check if we're in development mode
+        $is_dev_mode = ($_SERVER['HTTP_HOST'] === 'localhost:8000' || strpos($_SERVER['HTTP_HOST'], 'localhost') !== false);
+        
+        if ($is_dev_mode) {
+            // In development mode: Log email instead of sending it
+            $log_file = __DIR__ . '/email_log.txt';
+            $log_content = "--- New Email " . date('Y-m-d H:i:s') . " ---\n";
+            $log_content .= "To: " . $config['admin_email'] . "\n";
+            $log_content .= "Subject: " . $config['email_subject'] . "\n";
+            $log_content .= "Headers: " . print_r($headers, true) . "\n";
+            $log_content .= "Content: \n" . $email_content . "\n\n";
+            
+            // Save to log file
+            file_put_contents($log_file, $log_content, FILE_APPEND);
+            $mail_success = true; // Assume success in dev mode
+            
+            // Also save the debug info to the response
+            $response['debug'] = [
+                'mode' => 'development',
+                'email_saved_to' => 'email_log.txt',
+                'to' => $config['admin_email'],
+                'subject' => $config['email_subject']
+            ];
+        } else {
+            // In production mode: Actually send the email
+            $mail_success = mail($config['admin_email'], $config['email_subject'], $email_content, $headers);
+        }
         
         if ($mail_success) {
             // Record this submission for rate limiting
