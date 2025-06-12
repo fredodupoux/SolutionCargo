@@ -64,5 +64,6 @@
     ExpiresByType application/javascript "access plus 1 month"
 </IfModule>
 
-# Custom 404 error page (if you create one)
+# Custom Error Pages
 ErrorDocument 404 /404.html
+ErrorDocument 403 /403.html
